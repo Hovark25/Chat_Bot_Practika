@@ -10,9 +10,13 @@ let nums    = [];       // Два числа
 
 // Активания кнопки
 input.addEventListener('input', () => {
-  const active = !!input.value.trim();
-  send.classList.toggle('enabled', active);
-  send.disabled = !active;
+  if (input.value.trim()) {
+    send.classList.add('enabled');
+    send.disabled = false;
+  } else {
+    send.classList.remove('enabled');
+    send.disabled = true;
+  }
 });
 
 // React на отправку сообщения
@@ -31,7 +35,7 @@ function addMessage(text, who = 'bot') {
   const li = document.createElement('li');
   li.className = `msg ${who}`;
   li.innerHTML = `
-    <img src="assets/${who === 'bot' ? 'bot_avatar.png' : 'user_avatar.png'}" alt="" />
+    <img src="${who === 'bot' ? 'assets/bot_avatar.png' : 'assets/user_avatar.png'}" alt="" />
     <div class="bubble">${text}</div>`;
   chat.prepend(li);
 }
@@ -40,14 +44,14 @@ function addMessage(text, who = 'bot') {
 function handleCommand(cmd) {
   switch (true) {
     case /^\/start$/i.test(cmd):
-      state = 'idle';
+      state = 'started';
       user  = '';
       nums  = [];
       addMessage('Привет, меня зовут Чат-бот, а как зовут тебя?');
       break;
 
     case /^\/name:\s*(.+)$/i.test(cmd):
-      if (state === 'idle') {
+      if (state === 'started') {
         user  = cmd.match(/^\/name:\s*(.+)$/i)[1].trim();
         state = 'named';
         addMessage(`Привет ${user}, приятно познакомиться. Я умею считать, введи числа которые надо посчитать`);
@@ -58,7 +62,7 @@ function handleCommand(cmd) {
 
     case /^\/number:\s*([\d\.\,\s]+)$/i.test(cmd):
       if (state === 'named') {
-        nums = cmd.match(/[\d\.]+/g).map(Number);
+        nums = cmd.match(/[\d\.]+/g).map(parseFloat);
         if (nums.length === 2) {
           state = 'numbers';
           addMessage('Введите действие: -, +, *, /');
@@ -72,8 +76,15 @@ function handleCommand(cmd) {
 
     case /^[\+\-\*\/]$/.test(cmd):
       if (state === 'numbers') {
+        const op = cmd;
         const [a, b] = nums;
-        const res = { '+': a + b, '-': a - b, '*': a * b, '/': b !== 0 ? a / b : '∞' }[cmd];
+        let res;
+        switch (op) {
+          case '+': res = a + b; break;
+          case '-': res = a - b; break;
+          case '*': res = a * b; break;
+          case '/': res = b !== 0 ? a / b : '∞'; break;
+        }
         addMessage(`Результат: ${res}`);
         state = 'idle';
       } else {
@@ -87,6 +98,10 @@ function handleCommand(cmd) {
       break;
 
     default:
-      addMessage('Я не понимаю, введите другую команду!');
+      if (state === 'idle') {
+        addMessage('Введите команду /start, для начала общения');
+      } else {
+        addMessage('Я не понимаю, введите другую команду!');
+      }
   }
 }
